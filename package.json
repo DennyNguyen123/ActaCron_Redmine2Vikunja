@@ -1,18 +1,20 @@
 {
-  "name": "actacron-scripts-template",
+  "name": "actacron-redmine-to-vikunja",
   "version": "1.0.0",
-  "description": "Standard template repository for ActaCron automation scripts and dynamic MCP tools",
-  "main": "hello_cron.js",
+  "description": "ActaCron package for 1-way synchronization from Redmine query to Vikunja with dynamic AI Agent MCP tools",
+  "main": "redmine_to_vikunja_sync.js",
   "scripts": {
-    "test": "node scripts/validate.js",
+    "test": "node tests/test_http.js && node tests/test_mapper.js && node tests/test_redmine.js && node tests/test_vikunja.js && node tests/test_sync_engine.js && node tests/test_mcp.js && node scripts/validate.js",
     "validate": "node scripts/validate.js"
   },
   "keywords": [
     "actacron",
-    "cron",
+    "redmine",
+    "vikunja",
+    "sync",
     "mcp",
-    "automation",
-    "ai-agent"
+    "ai-agent",
+    "automation"
   ],
   "author": "",
   "license": "MIT"

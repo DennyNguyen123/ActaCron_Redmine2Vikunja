@@ -1,4 +1,4 @@
 {
-  "timeout_seconds": 60,
-  "description": "ActaCron automation scripts and dynamic MCP tools workspace"
+  "timeout_seconds": 120,
+  "description": "Redmine to Vikunja synchronization pipeline and AI MCP tools"
 }
