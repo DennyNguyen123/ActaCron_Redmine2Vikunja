@@ -1,0 +1,19 @@
+{
+  "name": "actacron-scripts-template",
+  "version": "1.0.0",
+  "description": "Standard template repository for ActaCron automation scripts and dynamic MCP tools",
+  "main": "hello_cron.js",
+  "scripts": {
+    "test": "node scripts/validate.js",
+    "validate": "node scripts/validate.js"
+  },
+  "keywords": [
+    "actacron",
+    "cron",
+    "mcp",
+    "automation",
+    "ai-agent"
+  ],
+  "author": "",
+  "license": "MIT"
+}

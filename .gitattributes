@@ -1,0 +1,4 @@
+# Ignore agent skills and tooling from GitHub language stats
+.agents/** linguist-vendored
+scripts/** linguist-vendored
+docs/** linguist-documentation
