@@ -36,6 +36,10 @@ function getIssuesByQuery(config, options) {
     "&offset=" + encodeURIComponent(offset) +
     "&include=attachments";
 
+  if (config.apiKey) {
+    endpoint += "&key=" + encodeURIComponent(config.apiKey);
+  }
+
   var res = httpClient.get(endpoint, getHeaders(config.apiKey));
   return res.data;
 }
@@ -58,6 +62,10 @@ function getIssue(config, issueId, options) {
   }
 
   var endpoint = baseUrl + "/issues/" + encodeURIComponent(issueId) + ".json?include=" + encodeURIComponent(includeStr);
+  if (config.apiKey) {
+    endpoint += "&key=" + encodeURIComponent(config.apiKey);
+  }
+
   var res = httpClient.get(endpoint, getHeaders(config.apiKey));
   return res.data;
 }
@@ -70,6 +78,9 @@ function updateIssue(config, issueId, fields) {
 
   var baseUrl = cleanUrl(config.url);
   var endpoint = baseUrl + "/issues/" + encodeURIComponent(issueId) + ".json";
+  if (config.apiKey) {
+    endpoint += "?key=" + encodeURIComponent(config.apiKey);
+  }
 
   var payload = {
     issue: fields || {}

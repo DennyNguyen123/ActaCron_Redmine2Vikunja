@@ -62,7 +62,7 @@ try {
   assert.strictEqual(lastCall.method, "GET");
   assert.strictEqual(
     lastCall.url,
-    "https://redmine.test/issues.json?query_id=12&limit=10&offset=0&include=attachments"
+    "https://redmine.test/issues.json?query_id=12&limit=10&offset=0&include=attachments&key=test_redmine_key"
   );
   assert.strictEqual(resQuery.issues.length, 1);
   assert.strictEqual(resQuery.issues[0].id, 101);
@@ -72,7 +72,7 @@ try {
   redmine.getIssuesByQuery(config, { queryId: 12 });
   assert.strictEqual(
     lastCall.url,
-    "https://redmine.test/issues.json?query_id=12&limit=50&offset=0&include=attachments"
+    "https://redmine.test/issues.json?query_id=12&limit=50&offset=0&include=attachments&key=test_redmine_key"
   );
 
   // 1c. Missing queryId throws error
@@ -85,7 +85,7 @@ try {
   assert.strictEqual(lastCall.method, "GET");
   assert.strictEqual(
     lastCall.url,
-    "https://redmine.test/issues/101.json?include=attachments%2Cjournals%2Crelations"
+    "https://redmine.test/issues/101.json?include=attachments%2Cjournals%2Crelations&key=test_redmine_key"
   );
   assert.strictEqual(resDetail.issue.id, 101);
   assert.strictEqual(resDetail.issue.description, "Body of issue 101");
@@ -94,7 +94,7 @@ try {
   redmine.getIssue(config, 101, { include: ["attachments"] });
   assert.strictEqual(
     lastCall.url,
-    "https://redmine.test/issues/101.json?include=attachments"
+    "https://redmine.test/issues/101.json?include=attachments&key=test_redmine_key"
   );
 
   // 2c. Missing issueId throws error
@@ -106,7 +106,7 @@ try {
   const updateFields = { notes: "AI Agent finished task", status_id: 3 };
   const resUpdate = redmine.updateIssue(config, 101, updateFields);
   assert.strictEqual(lastCall.method, "PUT");
-  assert.strictEqual(lastCall.url, "https://redmine.test/issues/101.json");
+  assert.strictEqual(lastCall.url, "https://redmine.test/issues/101.json?key=test_redmine_key");
   assert.deepStrictEqual(lastCall.body, { issue: updateFields });
   assert.strictEqual(resUpdate.issue.notes, "AI Agent finished task");
   assert.strictEqual(resUpdate.issue.status_id, 3);
@@ -121,7 +121,7 @@ try {
   redmine.getIssue(configWithSlash, 101);
   assert.strictEqual(
     lastCall.url,
-    "https://redmine.test/issues/101.json?include=attachments%2Cjournals%2Crelations"
+    "https://redmine.test/issues/101.json?include=attachments%2Cjournals%2Crelations&key=test_redmine_key"
   );
 
   console.log("All redmine client tests passed!");
