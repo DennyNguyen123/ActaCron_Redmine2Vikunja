@@ -114,11 +114,11 @@ function request(method, url, options) {
   var parsed = parseResponseBody(res.body);
 
   if (status < 200 || status >= 300) {
-    var errMsg = "HTTP " + status + " error";
+    var errMsg = "HTTP " + status + " on " + m + " " + url;
     if (parsed.data && typeof parsed.data === "object" && parsed.data.message) {
       errMsg += ": " + parsed.data.message;
     } else if (parsed.rawBody) {
-      errMsg += ": " + parsed.rawBody;
+      errMsg += ": " + (parsed.rawBody.length > 200 ? parsed.rawBody.substring(0, 200) + "..." : parsed.rawBody);
     }
 
     var err = new Error(errMsg);
