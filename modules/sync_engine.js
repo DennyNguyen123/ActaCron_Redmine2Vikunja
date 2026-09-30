@@ -12,6 +12,7 @@ function runSync(options) {
   var storage = options.storage;
   var dryRun = options.dryRun === true;
   var force = options.force === true || options.forceUpdate === true;
+  var resetCache = options.resetCache === true || options.reset === true;
 
   if (!redmineConfig.url || !redmineConfig.apiKey || !redmineConfig.queryId) {
     throw new Error("Missing Redmine configuration (url, apiKey, queryId)");
@@ -40,7 +41,13 @@ function runSync(options) {
   // Load existing state map from persistent storage
   var issueMapKey = "redmine_issue_map";
   var issueMap = {};
-  if (storage && typeof storage.get === "function") {
+
+  if (resetCache) {
+    if (storage && typeof storage.delete === "function") {
+      storage.delete(issueMapKey);
+      storage.delete("redmine_project_map");
+    }
+  } else if (storage && typeof storage.get === "function") {
     var stored = storage.get(issueMapKey);
     if (stored && typeof stored === "object") {
       issueMap = stored;
@@ -97,16 +104,34 @@ function runSync(options) {
     }
 
     if (existingRecord && existingRecord.vikunja_task_id) {
-      // Update existing task in Vikunja
-      vikunjaClient.updateTask(vikunjaConfig, existingRecord.vikunja_task_id, taskPayload);
-      existingRecord.last_updated_on = updatedOn;
-      existingRecord.synced_at = new Date().toISOString();
-      result.updated++;
-      result.synced_issues.push({
-        issue_id: issue.id,
-        action: "updated",
-        task_id: existingRecord.vikunja_task_id
-      });
+      // Attempt to update existing task in Vikunja
+      try {
+        vikunjaClient.updateTask(vikunjaConfig, existingRecord.vikunja_task_id, taskPayload);
+        existingRecord.last_updated_on = updatedOn;
+        existingRecord.synced_at = new Date().toISOString();
+        result.updated++;
+        result.synced_issues.push({
+          issue_id: issue.id,
+          action: "updated",
+          task_id: existingRecord.vikunja_task_id
+        });
+      } catch (updateErr) {
+        // Self-healing: if task was deleted on Vikunja (404), re-create it!
+        if (updateErr && (updateErr.status === 404 || String(updateErr).indexOf("404") !== -1)) {
+          var recreatedTask = vikunjaClient.createTask(vikunjaConfig, vikunjaProjectId, taskPayload);
+          existingRecord.vikunja_task_id = recreatedTask.id;
+          existingRecord.last_updated_on = updatedOn;
+          existingRecord.synced_at = new Date().toISOString();
+          result.created++;
+          result.synced_issues.push({
+            issue_id: issue.id,
+            action: "recreated",
+            task_id: recreatedTask.id
+          });
+        } else {
+          throw updateErr;
+        }
+      }
     } else {
       // Create new task in Vikunja
       var createdTask = vikunjaClient.createTask(vikunjaConfig, vikunjaProjectId, taskPayload);

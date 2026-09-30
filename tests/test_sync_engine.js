@@ -97,4 +97,30 @@ const forceRes = syncEngine.runSync({
 assert.strictEqual(forceRes.updated, 2);
 assert.strictEqual(forceRes.skipped, 0);
 
+// Test Self-healing on 404: if update fails with 404, re-create task
+const originalPost = global.http.post;
+global.http.post = function(url, body, headers) {
+  const err = new Error("HTTP 404: Task not found");
+  err.status = 404;
+  throw err;
+};
+
+const selfHealRes = syncEngine.runSync({
+  redmine: { url: "https://redmine.test", apiKey: "key", queryId: 1 },
+  vikunja: { url: "https://vikunja.test", token: "tok" },
+  storage: mockStorage,
+  force: true
+});
+assert.strictEqual(selfHealRes.created, 2);
+global.http.post = originalPost;
+
+// Test Reset Cache
+const resetRes = syncEngine.runSync({
+  redmine: { url: "https://redmine.test", apiKey: "key", queryId: 1 },
+  vikunja: { url: "https://vikunja.test", token: "tok" },
+  storage: mockStorage,
+  resetCache: true
+});
+assert.strictEqual(resetRes.created, 2);
+
 console.log("All sync engine tests passed!");
