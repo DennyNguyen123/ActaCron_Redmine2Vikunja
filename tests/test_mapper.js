@@ -57,15 +57,18 @@ assert.strictEqual(mapper.isIssueClosed({}), false);
 
 // 4. Description & Attachments link
 const desc = mapper.formatDescription(mockIssue, "https://redmine.example.com");
-assert.ok(desc.includes("[Issue #105](https://redmine.example.com/issues/105)"));
+assert.ok(desc.includes("<a href=\"https://redmine.example.com/issues/105\" target=\"_blank\" rel=\"noopener noreferrer\">Issue #105</a>"));
 assert.ok(desc.includes("The login button is misaligned on mobile screens."));
 assert.ok(desc.includes("screenshot.png"));
 assert.ok(desc.includes("https://redmine.example.com/attachments/download/201/screenshot.png"));
 assert.ok(desc.includes("(1 MB)"));
 assert.ok(desc.includes("Bug screenshot"));
-assert.ok(desc.includes("> **Status:** In Progress | **Priority:** Urgent | **Done:** 50%"));
-assert.ok(desc.includes("> **Assignee:** Dev Jane"));
-assert.ok(desc.includes("> **Author:** Admin User"));
+assert.ok(desc.includes("<strong>Status:</strong> In Progress | <strong>Priority:</strong> Urgent | <strong>Done:</strong> 50%"));
+assert.ok(desc.includes("<strong>Assignee:</strong> Dev Jane"));
+assert.ok(desc.includes("<strong>Author:</strong> Admin User"));
+assert.ok(desc.includes("<blockquote>"));
+assert.ok(desc.includes("<h3>Attachments</h3>"));
+assert.ok(desc.includes("<ul>"));
 assert.ok(!desc.includes("undefined"));
 
 // 5. Edge cases: missing description or attachments
@@ -74,9 +77,9 @@ const minimalIssue = {
   subject: "Empty task"
 };
 const minimalDesc = mapper.formatDescription(minimalIssue, "https://redmine.example.com");
-assert.ok(minimalDesc.includes("[Issue #200](https://redmine.example.com/issues/200)"));
-assert.ok(minimalDesc.includes("*(No description provided in Redmine)*"));
-assert.ok(!minimalDesc.includes("### Attachments"));
+assert.ok(minimalDesc.includes("<a href=\"https://redmine.example.com/issues/200\" target=\"_blank\" rel=\"noopener noreferrer\">Issue #200</a>"));
+assert.ok(minimalDesc.includes("<em>(No description provided in Redmine)</em>"));
+assert.ok(!minimalDesc.includes("<h3>Attachments</h3>"));
 assert.ok(!minimalDesc.includes("undefined"));
 assert.strictEqual(mapper.formatDescription(null), "");
 

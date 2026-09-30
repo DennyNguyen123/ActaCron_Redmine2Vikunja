@@ -11,6 +11,7 @@ function runSync(options) {
   var vikunjaConfig = options.vikunja || {};
   var storage = options.storage;
   var dryRun = options.dryRun === true;
+  var force = options.force === true || options.forceUpdate === true;
 
   if (!redmineConfig.url || !redmineConfig.apiKey || !redmineConfig.queryId) {
     throw new Error("Missing Redmine configuration (url, apiKey, queryId)");
@@ -52,9 +53,9 @@ function runSync(options) {
     var redmineProj = issue.project || { id: 0, name: "Default" };
     var updatedOn = issue.updated_on || "";
 
-    // Check if task exists and is up to date
+    // Check if task exists and is up to date (unless force update is requested)
     var existingRecord = issueMap[issueId];
-    if (existingRecord && existingRecord.last_updated_on === updatedOn) {
+    if (!force && existingRecord && existingRecord.last_updated_on === updatedOn) {
       result.skipped++;
       continue;
     }

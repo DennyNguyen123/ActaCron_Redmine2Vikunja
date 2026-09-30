@@ -51,63 +51,73 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
+function escapeHtml(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatDescription(issue, redmineUrl) {
   if (!issue || !issue.id) {
     return "";
   }
   var base = (redmineUrl || "").replace(/\/+$/, "");
-  var lines = [];
+  var html = [];
 
   // Redmine Reference Header
-  var issueUrl = base ? base + "/issues/" + issue.id : "#" + issue.id;
-  lines.push("**Redmine Link:** [Issue #" + issue.id + "](" + issueUrl + ")");
-  lines.push("");
+  var issueUrl = base ? base + "/issues/" + issue.id : "#";
+  html.push("<p><strong>Redmine Link:</strong> <a href=\"" + issueUrl + "\" target=\"_blank\" rel=\"noopener noreferrer\">Issue #" + issue.id + "</a></p>");
 
-  // Metadata block
-  var statusName = (issue.status && issue.status.name) ? issue.status.name : "N/A";
-  var priorityName = (issue.priority && issue.priority.name) ? issue.priority.name : "N/A";
+  // Metadata blockquote
+  var statusName = (issue.status && issue.status.name) ? escapeHtml(issue.status.name) : "N/A";
+  var priorityName = (issue.priority && issue.priority.name) ? escapeHtml(issue.priority.name) : "N/A";
   var metaParts = [
-    "**Status:** " + statusName,
-    "**Priority:** " + priorityName
+    "<strong>Status:</strong> " + statusName,
+    "<strong>Priority:</strong> " + priorityName
   ];
   if (issue.done_ratio !== undefined && issue.done_ratio !== null) {
-    metaParts.push("**Done:** " + issue.done_ratio + "%");
+    metaParts.push("<strong>Done:</strong> " + issue.done_ratio + "%");
   }
-  lines.push("> " + metaParts.join(" | "));
 
+  var bqLines = ["<p>" + metaParts.join(" | ") + "</p>"];
   if (issue.assigned_to && issue.assigned_to.name) {
-    lines.push("> **Assignee:** " + issue.assigned_to.name);
+    bqLines.push("<p><strong>Assignee:</strong> " + escapeHtml(issue.assigned_to.name) + "</p>");
   }
   if (issue.author && issue.author.name) {
-    lines.push("> **Author:** " + issue.author.name);
+    bqLines.push("<p><strong>Author:</strong> " + escapeHtml(issue.author.name) + "</p>");
   }
-  lines.push("");
+  html.push("<blockquote>" + bqLines.join("") + "</blockquote>");
 
   // Main issue description
-  lines.push("### Description");
+  html.push("<h3>Description</h3>");
   if (issue.description && issue.description.trim().length > 0) {
-    lines.push(issue.description.trim());
+    var descBody = escapeHtml(issue.description.trim()).replace(/\r?\n/g, "<br>");
+    html.push("<p>" + descBody + "</p>");
   } else {
-    lines.push("*(No description provided in Redmine)*");
+    html.push("<p><em>(No description provided in Redmine)</em></p>");
   }
-  lines.push("");
 
   // Attachments section (Links only, no binary download)
   if (issue.attachments && issue.attachments.length > 0) {
-    lines.push("### Attachments");
+    html.push("<h3>Attachments</h3>");
+    html.push("<ul>");
     for (var i = 0; i < issue.attachments.length; i++) {
       var att = issue.attachments[i];
       if (!att) continue;
       var filename = att.filename || "attachment";
       var downloadUrl = base ? base + "/attachments/download/" + att.id + "/" + encodeURIComponent(filename) : "#";
       var sizeStr = att.filesize ? " (" + formatBytes(att.filesize) + ")" : "";
-      var note = att.description ? " - *" + att.description + "*" : "";
-      lines.push("- [" + filename + "](" + downloadUrl + ")" + sizeStr + note);
+      var note = att.description ? " - <em>" + escapeHtml(att.description) + "</em>" : "";
+      html.push("<li><a href=\"" + downloadUrl + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + escapeHtml(filename) + "</a>" + sizeStr + note + "</li>");
     }
-    lines.push("");
+    html.push("</ul>");
   }
 
-  return lines.join("\n");
+  return html.join("\n");
 }
 
 module.exports = {

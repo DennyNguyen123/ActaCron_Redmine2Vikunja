@@ -5,6 +5,7 @@
  * @mcp false
  * @description Periodically synchronizes tasks from Redmine query to Vikunja projects with 1-1 reference integrity.
  * @param {boolean} dry_run - Run sync without creating or updating tasks
+ * @param {boolean} force - Force update existing tasks even if timestamps match
  * @param {number} limit - Maximum number of issues to fetch per run (default: 50)
  */
 function main(params) {
@@ -20,8 +21,9 @@ function main(params) {
 
   var limit = params.limit || (typeof env === "function" ? Number(env("SYNC_LIMIT")) : 50) || 50;
   var dryRun = params.dry_run === true;
+  var forceUpdate = params.force === true || params.force_update === true;
 
-  console.log("Starting Redmine -> Vikunja Sync (dry_run: " + dryRun + ", limit: " + limit + ")...");
+  console.log("Starting Redmine -> Vikunja Sync (dry_run: " + dryRun + ", limit: " + limit + ", force: " + forceUpdate + ")...");
 
   if (!redmineUrl || !redmineApiKey || !redmineQueryId) {
     throw new Error("Missing Redmine environment variables (REDMINE_URL, REDMINE_API_KEY, REDMINE_QUERY_ID)");
@@ -44,7 +46,8 @@ function main(params) {
     },
     storage: storageClient,
     limit: limit,
-    dryRun: dryRun
+    dryRun: dryRun,
+    force: forceUpdate
   });
 
   console.log("Sync complete! Created: " + result.created + ", Updated: " + result.updated + ", Skipped: " + result.skipped);

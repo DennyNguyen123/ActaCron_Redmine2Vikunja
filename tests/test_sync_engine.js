@@ -87,4 +87,14 @@ const dryRes = syncEngine.runSync({
 });
 assert.strictEqual(dryRes.dry_run, true);
 
+// Force update test: even if timestamps match, update tasks
+const forceRes = syncEngine.runSync({
+  redmine: { url: "https://redmine.test", apiKey: "key", queryId: 1 },
+  vikunja: { url: "https://vikunja.test", token: "tok" },
+  storage: mockStorage,
+  force: true
+});
+assert.strictEqual(forceRes.updated, 2);
+assert.strictEqual(forceRes.skipped, 0);
+
 console.log("All sync engine tests passed!");
