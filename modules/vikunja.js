@@ -61,51 +61,30 @@ function createProject(config, projectData) {
   return res.data;
 }
 
-function ensureProject(config, storage, options) {
+function ensureProject(config, options, maybeOptions) {
+  // Support both (config, options) and legacy (config, storage, options)
+  if (maybeOptions && typeof maybeOptions === "object") {
+    options = maybeOptions;
+  }
   options = options || {};
   var redmineProjectId = options.redmineProjectId;
   var projectName = options.projectName || ("Redmine Project #" + redmineProjectId);
 
-  // 1. Check persistent SQLite cache
-  var cacheKey = "redmine_project_map";
-  var projMap = null;
-  if (storage && typeof storage.get === "function") {
-    projMap = storage.get(cacheKey);
-  }
-  if (!projMap || typeof projMap !== "object") {
-    projMap = {};
-  }
-
-  if (redmineProjectId && projMap[redmineProjectId]) {
-    return projMap[redmineProjectId];
-  }
-
-  // 2. Fetch existing Vikunja projects to check for title match (case-insensitive)
+  // Directly query Vikunja for existing projects (case-insensitive title match)
   var projects = getAllProjects(config);
   for (var i = 0; i < projects.length; i++) {
     if (projects[i].title && projects[i].title.toLowerCase() === projectName.toLowerCase()) {
-      var matchedId = projects[i].id;
-      if (redmineProjectId && storage && typeof storage.set === "function") {
-        projMap[redmineProjectId] = matchedId;
-        storage.set(cacheKey, projMap);
-      }
-      return matchedId;
+      return projects[i].id;
     }
   }
 
-  // 3. Create new project in Vikunja
+  // Create new project on Vikunja if missing
   var newProj = createProject(config, {
     title: projectName,
     description: options.description || ("Synchronized from Redmine Project #" + redmineProjectId)
   });
 
-  var newProjId = newProj.id;
-  if (redmineProjectId && storage && typeof storage.set === "function") {
-    projMap[redmineProjectId] = newProjId;
-    storage.set(cacheKey, projMap);
-  }
-
-  return newProjId;
+  return newProj.id;
 }
 
 function createTask(config, projectId, taskPayload) {

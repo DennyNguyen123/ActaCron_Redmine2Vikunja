@@ -91,8 +91,8 @@ try {
   assert.strictEqual(Array.isArray(initialProjects), true);
   assert.strictEqual(initialProjects.length, 0);
 
-  // 2. Test ensureProject auto-creates project when missing
-  const projId = vikunja.ensureProject(config, mockStorage, {
+  // 2. Test ensureProject auto-creates project when missing (stateless signature: config, options)
+  const projId = vikunja.ensureProject(config, {
     redmineProjectId: 55,
     projectName: "Core App"
   });
@@ -100,32 +100,28 @@ try {
   assert.strictEqual(createdProjects.length, 1);
   assert.strictEqual(createdProjects[0].title, "Core App");
 
-  // Check that mockStorage has the cache saved
-  const cachedMap = mockStorage.get("redmine_project_map");
-  assert.strictEqual(typeof cachedMap, "object");
-  assert.strictEqual(cachedMap[55], 10);
-
-  // 3. Test ensureProject returns cached ID on subsequent calls without creating duplicates
-  const httpCallsBefore = httpCallHistory.length;
-  const cachedProjId = vikunja.ensureProject(config, mockStorage, {
+  // 3. Test ensureProject finds existing project by title via Vikunja API without creating duplicates
+  const existingProjId = vikunja.ensureProject(config, {
     redmineProjectId: 55,
     projectName: "Core App"
   });
-  assert.strictEqual(cachedProjId, 10);
+  assert.strictEqual(existingProjId, 10);
   assert.strictEqual(createdProjects.length, 1); // No new projects created
-  assert.strictEqual(httpCallHistory.length, httpCallsBefore); // No new HTTP calls made because it hit cache
 
-  // 4. Test ensureProject with cache cleared matches existing project title (case-insensitive)
-  mockStorage.delete("redmine_project_map");
-  const matchedProjId = vikunja.ensureProject(config, mockStorage, {
+  // 4. Test ensureProject matches existing project title (case-insensitive)
+  const matchedProjId = vikunja.ensureProject(config, {
     redmineProjectId: 55,
     projectName: "core app" // lowercase to test case-insensitivity
   });
   assert.strictEqual(matchedProjId, 10);
   assert.strictEqual(createdProjects.length, 1); // Found existing project, no duplicate created
-  // Check that mockStorage re-cached the project
-  const reCachedMap = mockStorage.get("redmine_project_map");
-  assert.strictEqual(reCachedMap[55], 10);
+
+  // 4b. Test backward compatibility when legacy storage argument is passed
+  const legacyProjId = vikunja.ensureProject(config, mockStorage, {
+    redmineProjectId: 55,
+    projectName: "Core App"
+  });
+  assert.strictEqual(legacyProjId, 10);
 
   // 5. Test createProject directly
   const customProj = vikunja.createProject(config, {

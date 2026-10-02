@@ -3,10 +3,9 @@
  * @cron 0/15 * * * *
  * @timeout 120
  * @mcp false
- * @description Periodically synchronizes tasks from Redmine query to Vikunja projects with 1-1 reference integrity.
+ * @description Periodically synchronizes tasks from Redmine query to Vikunja projects (100% stateless, zero local DB).
  * @param {boolean} dry_run - Run sync without creating or updating tasks
- * @param {boolean} force - Force update existing tasks even if timestamps match
- * @param {boolean} reset - Clear persistent storage cache and sync afresh
+ * @param {boolean} force - Force update existing tasks on Vikunja
  * @param {number} limit - Maximum number of issues to fetch per run (default: 50)
  */
 function main(params) {
@@ -23,9 +22,8 @@ function main(params) {
   var limit = params.limit || (typeof env === "function" ? Number(env("SYNC_LIMIT")) : 50) || 50;
   var dryRun = params.dry_run === true;
   var forceUpdate = params.force === true || params.force_update === true;
-  var resetCache = params.reset === true || params.reset_cache === true;
 
-  console.log("Starting Redmine -> Vikunja Sync (dry_run: " + dryRun + ", limit: " + limit + ", force: " + forceUpdate + ", reset: " + resetCache + ")...");
+  console.log("Starting Redmine -> Vikunja Sync (dry_run: " + dryRun + ", limit: " + limit + ", force: " + forceUpdate + ")...");
 
   if (!redmineUrl || !redmineApiKey || !redmineQueryId) {
     throw new Error("Missing Redmine environment variables (REDMINE_URL, REDMINE_API_KEY, REDMINE_QUERY_ID)");
@@ -33,8 +31,6 @@ function main(params) {
   if (!vikunjaUrl || !vikunjaToken) {
     throw new Error("Missing Vikunja environment variables (VIKUNJA_URL, VIKUNJA_API_TOKEN)");
   }
-
-  var storageClient = typeof storage !== "undefined" ? storage : null;
 
   var result = syncEngine.runSync({
     redmine: {
@@ -46,11 +42,9 @@ function main(params) {
       url: vikunjaUrl,
       token: vikunjaToken
     },
-    storage: storageClient,
     limit: limit,
     dryRun: dryRun,
-    force: forceUpdate,
-    resetCache: resetCache
+    force: forceUpdate
   });
 
   console.log("Sync complete! Created: " + result.created + ", Updated: " + result.updated + ", Skipped: " + result.skipped);
