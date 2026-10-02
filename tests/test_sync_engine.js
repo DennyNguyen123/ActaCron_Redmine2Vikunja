@@ -10,6 +10,8 @@ const mockStorage = {
 let tasksCreated = 0;
 let tasksUpdated = 0;
 
+let remoteVikunjaTasks = [];
+
 global.http = {
   get: function(url, headers) {
     if (url.includes("/issues.json")) {
@@ -33,15 +35,38 @@ global.http = {
         })
       };
     }
+    if (url.includes("/api/v1/projects/") && url.includes("/tasks")) {
+      const pageMatch = url.match(/page=(\d+)/);
+      const perPageMatch = url.match(/per_page=(\d+)/);
+      if (pageMatch && perPageMatch) {
+        const page = parseInt(pageMatch[1], 10);
+        const perPage = parseInt(perPageMatch[1], 10);
+        const start = (page - 1) * perPage;
+        return { status: 200, body: JSON.stringify(remoteVikunjaTasks.slice(start, start + perPage)) };
+      }
+      // If no pagination params given by caller, Vikunja server returns page 1 only!
+      return { status: 200, body: JSON.stringify(remoteVikunjaTasks.slice(0, 1)) };
+    }
     if (url.includes("/api/v1/projects")) {
-      return { status: 200, body: JSON.stringify([{ id: 100, title: "Project Alpha" }]) };
+      const pageMatch = url.match(/page=(\d+)/);
+      const perPageMatch = url.match(/per_page=(\d+)/);
+      const projects = [{ id: 100, title: "Project Alpha" }];
+      if (pageMatch && perPageMatch) {
+        const page = parseInt(pageMatch[1], 10);
+        const perPage = parseInt(perPageMatch[1], 10);
+        const start = (page - 1) * perPage;
+        return { status: 200, body: JSON.stringify(projects.slice(start, start + perPage)) };
+      }
+      return { status: 200, body: JSON.stringify(projects) };
     }
     return { status: 200, body: "{}" };
   },
   put: function(url, body, headers) {
     if (url.includes("/tasks")) {
       tasksCreated++;
-      return { status: 201, body: JSON.stringify({ id: 500 + tasksCreated, title: body.title }) };
+      const newTask = { id: 500 + tasksCreated, title: body.title };
+      remoteVikunjaTasks.push(newTask);
+      return { status: 201, body: JSON.stringify(newTask) };
     }
     return { status: 201, body: JSON.stringify({ id: 100 }) };
   },
@@ -114,13 +139,18 @@ const selfHealRes = syncEngine.runSync({
 assert.strictEqual(selfHealRes.created, 2);
 global.http.post = originalPost;
 
-// Test Reset Cache
+// Test Reset Cache / Cross-machine sync:
+// Even when cache is cleared/reset or missing, engine discovers remote Vikunja tasks by title prefix [#id]
+// and updates them rather than duplicating them!
+const createdBeforeReset = tasksCreated;
 const resetRes = syncEngine.runSync({
   redmine: { url: "https://redmine.test", apiKey: "key", queryId: 1 },
   vikunja: { url: "https://vikunja.test", token: "tok" },
   storage: mockStorage,
   resetCache: true
 });
-assert.strictEqual(resetRes.created, 2);
+assert.strictEqual(resetRes.created, 0); // Discovered remotely, no duplicates created!
+assert.strictEqual(resetRes.updated, 2); // Updated instead
+assert.strictEqual(tasksCreated, createdBeforeReset); // Zero new tasks put to Vikunja
 
 console.log("All sync engine tests passed!");

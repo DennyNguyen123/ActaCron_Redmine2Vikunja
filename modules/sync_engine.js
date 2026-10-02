@@ -54,6 +54,8 @@ function runSync(options) {
     }
   }
 
+  var projectRemoteTaskCache = {};
+
   for (var i = 0; i < issues.length; i++) {
     var issue = issues[i];
     var issueId = String(issue.id);
@@ -67,13 +69,56 @@ function runSync(options) {
       continue;
     }
 
-    // Ensure Vikunja Project exists
+    // Ensure Vikunja Project ID is determined
     var vikunjaProjectId = 0;
     if (!dryRun) {
       vikunjaProjectId = vikunjaClient.ensureProject(vikunjaConfig, storage, {
         redmineProjectId: redmineProj.id,
         projectName: redmineProj.name
       });
+    } else {
+      var cacheKey = "redmine_project_map";
+      var projMap = (storage && typeof storage.get === "function") ? storage.get(cacheKey) : null;
+      if (projMap && projMap[redmineProj.id]) {
+        vikunjaProjectId = projMap[redmineProj.id];
+      } else {
+        var existingProjects = vikunjaClient.getAllProjects(vikunjaConfig);
+        for (var p = 0; p < existingProjects.length; p++) {
+          if (existingProjects[p].title && existingProjects[p].title.toLowerCase() === redmineProj.name.toLowerCase()) {
+            vikunjaProjectId = existingProjects[p].id;
+            break;
+          }
+        }
+      }
+    }
+
+    // Remote discovery: if task is not in local SQLite cache, scan Vikunja project tasks by title prefix [#id]
+    if (!existingRecord && vikunjaProjectId) {
+      if (!projectRemoteTaskCache[vikunjaProjectId]) {
+        projectRemoteTaskCache[vikunjaProjectId] = true;
+        var remoteTasks = vikunjaClient.getAllProjectTasks(vikunjaConfig, vikunjaProjectId);
+        for (var tIdx = 0; tIdx < remoteTasks.length; tIdx++) {
+          var rTask = remoteTasks[tIdx];
+          if (!rTask || !rTask.title) continue;
+          var remoteIssueId = mapper.extractIssueId(rTask.title);
+          if (remoteIssueId !== null) {
+            var strRemoteId = String(remoteIssueId);
+            if (!issueMap[strRemoteId]) {
+              issueMap[strRemoteId] = {
+                vikunja_task_id: rTask.id,
+                last_updated_on: null,
+                synced_at: new Date().toISOString()
+              };
+            }
+          }
+        }
+      }
+      existingRecord = issueMap[issueId];
+    }
+
+    if (!force && existingRecord && existingRecord.last_updated_on === updatedOn) {
+      result.skipped++;
+      continue;
     }
 
     var taskPayload = {

@@ -27,6 +27,18 @@ global.http = {
   get: function(url, headers) {
     httpCallHistory.push({ method: "GET", url: url, headers: headers });
     assert.strictEqual(headers["Authorization"], "Bearer test_token");
+    if (url.includes("/api/v1/projects/") && url.includes("/tasks")) {
+      const pageMatch = url.match(/page=(\d+)/);
+      const perPageMatch = url.match(/per_page=(\d+)/);
+      if (pageMatch && perPageMatch) {
+        const page = parseInt(pageMatch[1], 10);
+        const perPage = parseInt(perPageMatch[1], 10);
+        const start = (page - 1) * perPage;
+        const paged = createdTasks.slice(start, start + perPage);
+        return { status: 200, body: JSON.stringify(paged) };
+      }
+      return { status: 200, body: JSON.stringify(createdTasks) };
+    }
     if (url.includes("/api/v1/projects")) {
       return { status: 200, body: JSON.stringify(createdProjects) };
     }
@@ -141,7 +153,24 @@ try {
   });
   assert.strictEqual(updatedTask.id, 88);
   assert.strictEqual(updatedTask.done, true);
-  assert.strictEqual(updatedTask.title, "[#105] Fix login button (Resolved)");
+  // 8. Test getProjectTasks
+  const projectTasks = vikunja.getProjectTasks(config, projId);
+  assert.strictEqual(Array.isArray(projectTasks), true);
+  assert.strictEqual(projectTasks.length, 1);
+  assert.strictEqual(projectTasks[0].id, 88);
+  assert.strictEqual(projectTasks[0].title, "[#105] Fix login button");
+
+  // 9. Test getAllProjectTasks with pagination across multiple pages
+  // Simulate 3 tasks across 2 pages (page size 2)
+  createdTasks.push({ id: 89, title: "[#106] Second Task", project_id: 10 });
+  createdTasks.push({ id: 90, title: "[#107] Third Task", project_id: 10 });
+  
+  // Custom mock response for page 1 and page 2
+  const allPagedTasks = vikunja.getAllProjectTasks(config, projId, { per_page: 2 });
+  assert.strictEqual(allPagedTasks.length, 3);
+  assert.strictEqual(allPagedTasks[0].id, 88);
+  assert.strictEqual(allPagedTasks[1].id, 89);
+  assert.strictEqual(allPagedTasks[2].id, 90);
 
   console.log("All vikunja client tests passed!");
 } finally {

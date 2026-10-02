@@ -88,4 +88,16 @@ const descTrailingSlash = mapper.formatDescription(mockIssue, "https://redmine.e
 assert.ok(descTrailingSlash.includes("https://redmine.example.com/issues/105"));
 assert.ok(!descTrailingSlash.includes("redmine.example.com//"));
 
+// 7. Title prefix parser (extractIssueId)
+assert.strictEqual(mapper.extractIssueId("[#123] Fix login bug"), 123);
+assert.strictEqual(mapper.extractIssueId("[#99999] [Backend] DB migration"), 99999);
+assert.strictEqual(mapper.extractIssueId("No issue tag in title"), null);
+assert.strictEqual(mapper.extractIssueId(""), null);
+assert.strictEqual(mapper.extractIssueId(null), null);
+assert.strictEqual(mapper.extractIssueId(undefined), null);
+assert.strictEqual(mapper.extractIssueId(123), null);
+assert.strictEqual(mapper.extractIssueId("[#abc] Invalid tag"), null);
+assert.strictEqual(mapper.extractIssueId("[#] Empty tag"), null);
+
 console.log("All mapper tests passed!");
+

@@ -11,6 +11,14 @@ function formatTitle(issue) {
   return "[#" + issue.id + "] " + subject;
 }
 
+function extractIssueId(title) {
+  if (!title || typeof title !== "string") {
+    return null;
+  }
+  var match = title.match(/^\[#(\d+)\]/);
+  return match ? Number(match[1]) : null;
+}
+
 function mapPriority(priority) {
   if (!priority) {
     return 2; // Default to Normal
@@ -122,6 +130,7 @@ function formatDescription(issue, redmineUrl) {
 
 module.exports = {
   formatTitle: formatTitle,
+  extractIssueId: extractIssueId,
   mapPriority: mapPriority,
   isIssueClosed: isIssueClosed,
   formatDescription: formatDescription

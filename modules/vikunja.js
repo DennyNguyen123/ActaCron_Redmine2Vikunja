@@ -19,11 +19,35 @@ function getHeaders(token) {
   return headers;
 }
 
-function getProjects(config) {
+function getProjects(config, options) {
+  options = options || {};
   var baseUrl = cleanUrl(config.url);
   var endpoint = baseUrl + "/api/v1/projects";
+  var queryParts = [];
+  if (options.page) queryParts.push("page=" + encodeURIComponent(options.page));
+  if (options.per_page) queryParts.push("per_page=" + encodeURIComponent(options.per_page));
+  if (options.s) queryParts.push("s=" + encodeURIComponent(options.s));
+  if (queryParts.length > 0) {
+    endpoint += "?" + queryParts.join("&");
+  }
   var res = httpClient.get(endpoint, getHeaders(config.token));
   return Array.isArray(res.data) ? res.data : [];
+}
+
+function getAllProjects(config) {
+  var perPage = 50;
+  var page = 1;
+  var all = [];
+  while (true) {
+    var batch = getProjects(config, { page: page, per_page: perPage });
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    for (var i = 0; i < batch.length; i++) {
+      all.push(batch[i]);
+    }
+    if (batch.length < perPage) break;
+    page++;
+  }
+  return all;
 }
 
 function createProject(config, projectData) {
@@ -57,7 +81,7 @@ function ensureProject(config, storage, options) {
   }
 
   // 2. Fetch existing Vikunja projects to check for title match (case-insensitive)
-  var projects = getProjects(config);
+  var projects = getAllProjects(config);
   for (var i = 0; i < projects.length; i++) {
     if (projects[i].title && projects[i].title.toLowerCase() === projectName.toLowerCase()) {
       var matchedId = projects[i].id;
@@ -98,10 +122,49 @@ function updateTask(config, taskId, taskPayload) {
   return res.data;
 }
 
+function getProjectTasks(config, projectId, options) {
+  options = options || {};
+  var baseUrl = cleanUrl(config.url);
+  var endpoint = baseUrl + "/api/v1/projects/" + encodeURIComponent(projectId) + "/tasks";
+  var queryParts = [];
+  if (options.page) queryParts.push("page=" + encodeURIComponent(options.page));
+  if (options.per_page) queryParts.push("per_page=" + encodeURIComponent(options.per_page));
+  if (options.s) queryParts.push("s=" + encodeURIComponent(options.s));
+  if (queryParts.length > 0) {
+    endpoint += "?" + queryParts.join("&");
+  }
+  var res = httpClient.get(endpoint, getHeaders(config.token));
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+function getAllProjectTasks(config, projectId, options) {
+  options = options || {};
+  var perPage = options.per_page || 50;
+  var page = 1;
+  var allTasks = [];
+  while (true) {
+    var tasks = getProjectTasks(config, projectId, { page: page, per_page: perPage, s: options.s });
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      break;
+    }
+    for (var i = 0; i < tasks.length; i++) {
+      allTasks.push(tasks[i]);
+    }
+    if (tasks.length < perPage) {
+      break;
+    }
+    page++;
+  }
+  return allTasks;
+}
+
 module.exports = {
   getProjects: getProjects,
+  getAllProjects: getAllProjects,
   createProject: createProject,
   ensureProject: ensureProject,
   createTask: createTask,
-  updateTask: updateTask
+  updateTask: updateTask,
+  getProjectTasks: getProjectTasks,
+  getAllProjectTasks: getAllProjectTasks
 };
