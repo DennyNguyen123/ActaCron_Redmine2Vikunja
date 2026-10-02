@@ -42,8 +42,20 @@ function isIssueClosed(issue) {
   if (status.is_closed === true) {
     return true;
   }
-  var name = (status.name || "").toLowerCase();
-  return name === "closed" || name === "resolved" || name === "rejected";
+  var name = (status.name || "").toLowerCase().trim();
+  if (!name) {
+    return false;
+  }
+  var closedKeywords = [
+    "closed", "resolved", "rejected", "done", "completed", "finish", "finished",
+    "đã giải quyết", "giải quyết", "đã đóng", "đóng", "hoàn thành", "hoàn tất", "từ chối", "kết thúc"
+  ];
+  for (var i = 0; i < closedKeywords.length; i++) {
+    if (name.indexOf(closedKeywords[i]) !== -1) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function mapPercentDone(issue) {

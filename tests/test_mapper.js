@@ -51,7 +51,13 @@ assert.strictEqual(mapper.isIssueClosed({ status: { id: 5, is_closed: true } }),
 assert.strictEqual(mapper.isIssueClosed({ status: { name: "Closed" } }), true);
 assert.strictEqual(mapper.isIssueClosed({ status: { name: "resolved" } }), true);
 assert.strictEqual(mapper.isIssueClosed({ status: { name: "Rejected" } }), true);
+assert.strictEqual(mapper.isIssueClosed({ status: { name: "Đã giải quyết" } }), true);
+assert.strictEqual(mapper.isIssueClosed({ status: { name: "Giải quyết" } }), true);
+assert.strictEqual(mapper.isIssueClosed({ status: { name: "Đã đóng" } }), true);
+assert.strictEqual(mapper.isIssueClosed({ status: { name: "Hoàn thành" } }), true);
+assert.strictEqual(mapper.isIssueClosed({ status: { name: "Từ chối" } }), true);
 assert.strictEqual(mapper.isIssueClosed({ status: { name: "Open" } }), false);
+assert.strictEqual(mapper.isIssueClosed({ status: { name: "Đang xử lý" } }), false);
 assert.strictEqual(mapper.isIssueClosed(null), false);
 assert.strictEqual(mapper.isIssueClosed({}), false);
 

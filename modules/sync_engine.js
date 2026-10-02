@@ -88,7 +88,7 @@ function runSync(options) {
       title: mapper.formatTitle(issue),
       description: mapper.formatDescription(issue, redmineConfig.url),
       priority: mapper.mapPriority(issue.priority),
-      done: isClosed,
+      done: isClosed || percentDone >= 1.0,
       percent_done: percentDone,
       due_date: issue.due_date ? issue.due_date + "T23:59:59Z" : null
     };
@@ -148,6 +148,10 @@ function runSync(options) {
           if (taskPayload.hasOwnProperty(k)) {
             updatePayload[k] = taskPayload[k];
           }
+        }
+
+        if (taskPayload.done) {
+          delete updatePayload.done_at;
         }
 
         vikunjaClient.updateTask(vikunjaConfig, existingTask.id, updatePayload);
