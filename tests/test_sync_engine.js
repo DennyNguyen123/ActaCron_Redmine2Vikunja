@@ -72,7 +72,9 @@ global.http = {
         title: body.title,
         description: body.description,
         done: body.done || false,
-        priority: body.priority || 2
+        priority: body.priority || 2,
+        percent_done: body.percent_done !== undefined ? body.percent_done : 0,
+        due_date: body.due_date || null
       };
       remoteVikunjaTasks.push(newTask);
       return { status: 201, body: JSON.stringify(newTask) };
@@ -139,6 +141,33 @@ const res3b = syncEngine.runSync({
 assert.strictEqual(res3b.created, 0);
 assert.strictEqual(res3b.updated, 1);
 assert.strictEqual(res3b.skipped, 1);
+
+// 3c. Issue #2 status changed from "Open" to "In Progress" (both are open, done: false, but description/status changed):
+currentRedmineIssues[1].status = { id: 2, name: "In Progress", is_closed: false };
+const res3c = syncEngine.runSync({
+  redmine: { url: "https://redmine.test", apiKey: "key", queryId: 1 },
+  vikunja: { url: "https://vikunja.test", token: "tok" }
+});
+assert.strictEqual(res3c.created, 0);
+assert.strictEqual(res3c.updated, 1); // Should detect description/status change!
+assert.strictEqual(res3c.skipped, 1);
+
+// 3d. Issue #2 done_ratio changed to 60%: should detect change and set percent_done: 0.6
+currentRedmineIssues[1].done_ratio = 60;
+const res3d = syncEngine.runSync({
+  redmine: { url: "https://redmine.test", apiKey: "key", queryId: 1 },
+  vikunja: { url: "https://vikunja.test", token: "tok" }
+});
+assert.strictEqual(res3d.created, 0);
+assert.strictEqual(res3d.updated, 1);
+assert.strictEqual(res3d.skipped, 1);
+const task2 = remoteVikunjaTasks.find(t => t.title.includes("[#2]"));
+assert.strictEqual(task2.percent_done, 0.6);
+
+// Issue #1 is closed: verify percent_done is 1.0 and done is true
+const task1 = remoteVikunjaTasks.find(t => t.title.includes("[#1]"));
+assert.strictEqual(task1.done, true);
+assert.strictEqual(task1.percent_done, 1.0);
 
 // 4. Vikunja tasks wiped out remotely: next sync should automatically recreate both tasks (Self-Healing)
 remoteVikunjaTasks = [];

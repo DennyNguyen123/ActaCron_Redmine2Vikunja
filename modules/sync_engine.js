@@ -81,11 +81,15 @@ function runSync(options) {
       ? projectTasksCache[vikunjaProjectId][issueId]
       : null;
 
+    var isClosed = mapper.isIssueClosed(issue);
+    var percentDone = mapper.mapPercentDone(issue);
+
     var taskPayload = {
       title: mapper.formatTitle(issue),
       description: mapper.formatDescription(issue, redmineConfig.url),
       priority: mapper.mapPriority(issue.priority),
-      done: mapper.isIssueClosed(issue),
+      done: isClosed,
+      percent_done: percentDone,
       due_date: issue.due_date ? issue.due_date + "T23:59:59Z" : null
     };
 
@@ -110,17 +114,20 @@ function runSync(options) {
       // Check if update is needed by comparing fields against Vikunja
       var needsUpdate = force;
       if (!needsUpdate) {
+        var currentPercent = Number(existingTask.percent_done) || 0;
+        var targetPercent = Number(taskPayload.percent_done) || 0;
+        var currentDesc = existingTask.description || "";
+        var targetDesc = taskPayload.description || "";
+        var rDue = existingTask.due_date ? String(existingTask.due_date).substring(0, 10) : "";
+        var expectedDue = taskPayload.due_date ? String(taskPayload.due_date).substring(0, 10) : "";
+
         if (existingTask.title !== taskPayload.title ||
-            existingTask.done !== taskPayload.done ||
-            existingTask.priority !== taskPayload.priority) {
+            Boolean(existingTask.done) !== Boolean(taskPayload.done) ||
+            existingTask.priority !== taskPayload.priority ||
+            Math.abs(currentPercent - targetPercent) > 0.001 ||
+            currentDesc !== targetDesc ||
+            rDue !== expectedDue) {
           needsUpdate = true;
-        }
-        if (!needsUpdate) {
-          var rDue = existingTask.due_date ? String(existingTask.due_date).substring(0, 10) : "";
-          var expectedDue = taskPayload.due_date ? String(taskPayload.due_date).substring(0, 10) : "";
-          if (rDue !== expectedDue) {
-            needsUpdate = true;
-          }
         }
       }
 
@@ -130,9 +137,24 @@ function runSync(options) {
       }
 
       try {
-        vikunjaClient.updateTask(vikunjaConfig, existingTask.id, taskPayload);
+        var updatePayload = {};
+        var k;
+        for (k in existingTask) {
+          if (existingTask.hasOwnProperty(k)) {
+            updatePayload[k] = existingTask[k];
+          }
+        }
+        for (k in taskPayload) {
+          if (taskPayload.hasOwnProperty(k)) {
+            updatePayload[k] = taskPayload[k];
+          }
+        }
+
+        vikunjaClient.updateTask(vikunjaConfig, existingTask.id, updatePayload);
         existingTask.title = taskPayload.title;
+        existingTask.description = taskPayload.description;
         existingTask.done = taskPayload.done;
+        existingTask.percent_done = taskPayload.percent_done;
         existingTask.priority = taskPayload.priority;
         existingTask.due_date = taskPayload.due_date;
         result.updated++;

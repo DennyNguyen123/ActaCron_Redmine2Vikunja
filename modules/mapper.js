@@ -46,6 +46,22 @@ function isIssueClosed(issue) {
   return name === "closed" || name === "resolved" || name === "rejected";
 }
 
+function mapPercentDone(issue) {
+  if (!issue) {
+    return 0;
+  }
+  if (isIssueClosed(issue)) {
+    return 1.0;
+  }
+  if (issue.done_ratio !== undefined && issue.done_ratio !== null) {
+    var ratio = Number(issue.done_ratio);
+    if (!isNaN(ratio)) {
+      return Math.max(0, Math.min(1.0, ratio / 100));
+    }
+  }
+  return 0;
+}
+
 function formatBytes(bytes) {
   if (!bytes || bytes <= 0) {
     return "0 B";
@@ -133,5 +149,6 @@ module.exports = {
   extractIssueId: extractIssueId,
   mapPriority: mapPriority,
   isIssueClosed: isIssueClosed,
+  mapPercentDone: mapPercentDone,
   formatDescription: formatDescription
 };

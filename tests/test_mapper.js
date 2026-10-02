@@ -99,5 +99,14 @@ assert.strictEqual(mapper.extractIssueId(123), null);
 assert.strictEqual(mapper.extractIssueId("[#abc] Invalid tag"), null);
 assert.strictEqual(mapper.extractIssueId("[#] Empty tag"), null);
 
+// 8. Progress mapper (mapPercentDone)
+assert.strictEqual(mapper.mapPercentDone({ done_ratio: 50 }), 0.5);
+assert.strictEqual(mapper.mapPercentDone({ done_ratio: 100 }), 1.0);
+assert.strictEqual(mapper.mapPercentDone({ done_ratio: 0 }), 0.0);
+assert.strictEqual(mapper.mapPercentDone({ status: { name: "Resolved" } }), 1.0);
+assert.strictEqual(mapper.mapPercentDone({ status: { is_closed: true } }), 1.0);
+assert.strictEqual(mapper.mapPercentDone(null), 0.0);
+assert.strictEqual(mapper.mapPercentDone({}), 0.0);
+
 console.log("All mapper tests passed!");
 
