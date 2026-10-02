@@ -115,7 +115,9 @@ function formatDescription(issue, redmineUrl) {
     "<strong>Status:</strong> " + statusName,
     "<strong>Priority:</strong> " + priorityName
   ];
-  if (issue.done_ratio !== undefined && issue.done_ratio !== null) {
+  if (isIssueClosed(issue)) {
+    metaParts.push("<strong>Done:</strong> 100%");
+  } else if (issue.done_ratio !== undefined && issue.done_ratio !== null) {
     metaParts.push("<strong>Done:</strong> " + issue.done_ratio + "%");
   }
 
